@@ -3,6 +3,10 @@
 // ===== Includes =====
 #include <windows.h>
 #include <cstdio>
+#include <commctrl.h>
+
+// ===== Link =====
+#pragma comment(lib, "comctl32.lib")
 
 // ===== Constants =====
 #define MAX_REMINDERS 20
@@ -10,7 +14,8 @@
 #define ID_EDIT_MINUTES 102
 #define ID_BUTTON_ADD   103
 #define ID_TIMER_CHECK  1
-
+#define ID_LISTVIEW 104 
+HWND hListView = nullptr;
 // Types
 struct Reminder {
     wchar_t text[256];
@@ -28,12 +33,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
 
         // Create window
-    case WM_CREATE:
-        CreateWindow(L"STATIC", L"Reminder text:", WS_VISIBLE | WS_CHILD,
+    case WM_CREATE: {
+        //Create Reminder name text and edit box
+        CreateWindow(L"STATIC", L"Reminder Name:", WS_VISIBLE | WS_CHILD,
             20, 20, 120, 20, hwnd, nullptr, nullptr, nullptr);
         hEditText = CreateWindow(L"EDIT", L"", WS_VISIBLE | WS_CHILD | WS_BORDER,
             150, 20, 300, 24, hwnd, (HMENU)ID_EDIT_TEXT, nullptr, nullptr);
 
+        //Create minutes from now text and edit box
         CreateWindow(L"STATIC", L"Minutes from now:", WS_VISIBLE | WS_CHILD,
             20, 60, 120, 20, hwnd, nullptr, nullptr, nullptr);
         hEditMinutes = CreateWindow(L"EDIT", L"1", WS_VISIBLE | WS_CHILD | WS_BORDER | ES_NUMBER,
@@ -42,12 +49,34 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         CreateWindow(L"BUTTON", L"Add Reminder", WS_VISIBLE | WS_CHILD,
             20, 100, 150, 30, hwnd, (HMENU)ID_BUTTON_ADD, nullptr, nullptr);
 
+        //Creat table
+        hListView = CreateWindowEx(0, WC_LISTVIEW, L"", WS_CHILD | WS_VISIBLE | LVS_REPORT | LVS_EDITLABELS | LVS_SHOWSELALWAYS, 20, 140, 440, 200, hwnd, (HMENU)ID_LISTVIEW, GetModuleHandle(NULL), NULL);
+
+        //Add columns
+        LVCOLUMN lvc = {}; 
+        lvc.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM; 
+        lvc.cx = 300; 
+        lvc.pszText = const_cast<LPWSTR>(L"Reminders");
+        ListView_InsertColumn(hListView, 0, &lvc); lvc.cx = 100;
+        ListView_InsertColumn(hListView, 1, &lvc);
+
+        /*Insert sample item
+        LVITEM lvi = {};
+        lvi.mask = LVIF_TEXT;
+        lvi.iItem = 0;
+        lvi.iSubItem = 0;
+        lvi.pszText = const_cast < LPWSTR>(L"Sample reminder");
+        ListView_InsertItem(hListView, &lvi);
+        ListView_SetItemText(hListView, 0, 1, const_cast < LPWSTR>(L"1"));
+        */
+
         // Start a timer to check for reminders
         SetTimer(hwnd, ID_TIMER_CHECK, 1000, nullptr);
         return 0;
+    }
 
         // Button clicked: read inputs and store as a new reminder
-    case WM_COMMAND:
+    case WM_COMMAND: {
         if (LOWORD(wParam) == ID_BUTTON_ADD && HIWORD(wParam) == BN_CLICKED) {
             wchar_t textBuf[256] = {};
             wchar_t minutesBuf[16] = {};
@@ -73,13 +102,22 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             r.dueTimeMs = GetTickCount64() + (ULONGLONG)minutes * 60 * 1000;
             r.fired = false;
 
+			// Add to listview
+			LVITEM lvi = {};
+			lvi.mask = LVIF_TEXT;
+			lvi.iItem = g_reminderCount - 1;
+			lvi.iSubItem = 0;
+			lvi.pszText = const_cast<LPWSTR>(r.text);
+			ListView_InsertItem(hListView, &lvi);
+
             SetWindowText(hEditText, L"");
             MessageBox(hwnd, L"Reminder added.", L"Status", MB_OK);
         }
         return 0;
+    }
 
         // Timer tick: check if any reminder is due, then pop a notification
-    case WM_TIMER:
+    case WM_TIMER: {
         if (wParam == ID_TIMER_CHECK) {
             ULONGLONG now = GetTickCount64();
             for (int i = 0; i < g_reminderCount; i++) {
@@ -90,6 +128,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 }
             }
         }
+        return 0;
+    }
+    case WM_SIZE:
+        //Resizing/moving listview when the window is resized
+        if (hListView) { 
+            MoveWindow(hListView, 20, 140, LOWORD(lParam) - 40, HIWORD(lParam) - 160, TRUE); 
+        } 
         return 0;
 
         // --- Window closing: clean up and exit ---
@@ -102,8 +147,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 }
 
 // ===== Entry point =====
-int WINAPI WinMain(HINSTANCE  hInstance, HINSTANCE, LPSTR, int nCmdShow) {
+int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nCmdShow) {
+    UNREFERENCED_PARAMETER(hPrevInstance);
+    UNREFERENCED_PARAMETER(lpCmdLine);
     const wchar_t CLASS_NAME[] = L"StarterFormWindowClass";
+    //Initialising Common Controls
+    INITCOMMONCONTROLSEX icex = { sizeof(icex), ICC_LISTVIEW_CLASSES }; 
+    InitCommonControlsEx(&icex);
 
     // --- Register window class ---
     WNDCLASS wc = {};
