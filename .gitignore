@@ -2,3 +2,12 @@
 *.exe
 *.obj
 *.pdb
+*.ilk
+*.log
+*.idb
+*.iobj
+*.ipdb
+*.recipe
+*.tlog/
+x64/
+StarterForm/x64/

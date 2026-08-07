@@ -65,6 +65,22 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="StarterForm.cpp" />
+    <ClCompile Include="Common.cpp" />
+    <ClCompile Include="Reminder.cpp" />
+    <ClCompile Include="Task.cpp" />
+    <ClCompile Include="Persistence.cpp" />
+    <ClCompile Include="EntryDialog.cpp" />
+    <ClCompile Include="NotificationPopup.cpp" />
+    <ClCompile Include="MainWindow.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Common.h" />
+    <ClInclude Include="Reminder.h" />
+    <ClInclude Include="Task.h" />
+    <ClInclude Include="Persistence.h" />
+    <ClInclude Include="EntryDialog.h" />
+    <ClInclude Include="NotificationPopup.h" />
+    <ClInclude Include="MainWindow.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
